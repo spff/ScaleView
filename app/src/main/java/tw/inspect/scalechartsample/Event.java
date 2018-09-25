@@ -8,16 +8,18 @@ import tw.inspect.scalechart.LineSegment;
 
 public class Event implements LineSegment {
     @NonNull
-    public final Calendar eventTimeStart;
+    public final int eventTimeStart;
     @NonNull
-    public final Calendar eventTimeEnd;
+    public final int eventTimeEnd;
     @NonNull
     public final String title;
 
     public Event(@NonNull Calendar eventTimeStart, @NonNull Calendar eventTimeEnd, @NonNull String title) {
-        this.eventTimeStart = eventTimeStart;
-        this.eventTimeEnd = eventTimeEnd;
+        this.eventTimeStart = transCalendarToPoint(eventTimeStart);
+        this.eventTimeEnd = transCalendarToPoint(eventTimeEnd);
         this.title = title;
+
+
     }
 
 
@@ -37,12 +39,12 @@ public class Event implements LineSegment {
 
     @Override
     public int getStartPoint() {
-        return transCalendarToPoint(eventTimeStart);
+        return eventTimeStart;
     }
 
     @Override
     public int getEndPoint() {
-        return transCalendarToPoint(eventTimeEnd);
+        return eventTimeEnd;
     }
 
     @Override
