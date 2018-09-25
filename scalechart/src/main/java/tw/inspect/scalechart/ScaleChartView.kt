@@ -24,6 +24,7 @@ private const val EVENT_RECT_TOP_PERCENTAGE = 0.2
 private const val EVENT_RECT_BOTTOM_PERCENTAGE = 0.65
 private const val TIME_LINE_TOP_PERCENTAGE = 0.7
 private const val TIME_TEXT_TOP_PERCENTAGE = 0.9
+private const val SCALE_THICKNESS = 4F
 
 class ScaleChartView : View {
 
@@ -55,7 +56,7 @@ class ScaleChartView : View {
         paint2.textSize = 32f
         paint1.color = Color.YELLOW
         paint2.color = Color.BLACK
-        paint.strokeWidth = 4F
+        paint.strokeWidth = SCALE_THICKNESS
         setPadding(4, 4, 0, 0)
     }
 
@@ -182,11 +183,22 @@ class ScaleChartView : View {
         return unit * context.resources.displayMetrics.xdpi * resolution
     }
 
+    private val innerWidth
+        get() = width - paddingStart - paddingEnd
+
+    private fun getPositionX(safeUnit: Double): Double {
+        return (innerWidth / 2 + paddingLeft + unitToPx(safeUnit - currentSafeUnit))
+    }
+
+    private fun getPositionX(safeUnit: Int): Double {
+        return (innerWidth / 2 + paddingLeft + unitToPx(safeUnit - currentSafeUnit))
+    }
+
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
 
         override fun onScroll(e1: MotionEvent, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             Log.e("onScroll", "$e1 $e2 $distanceX $distanceY")
-            if(scrollable) {
+            if (scrollable) {
                 scrollToSafeUnit(currentSafeUnit + pxToUnit(distanceX.toDouble()))
             }
             return true
@@ -287,6 +299,7 @@ class ScaleChartView : View {
 
     private val sparseArray = SparseArray<Scale>()
 
+
     override fun onDraw(canvas: Canvas) {
 
         val eventTop = (height * EVENT_RECT_TOP_PERCENTAGE).toFloat()
@@ -320,7 +333,6 @@ class ScaleChartView : View {
 
         paint.color = Color.BLACK
 
-        canvas.drawLine(paddingLeft.toFloat(), scaleBarTop, width - paddingRight.toFloat(), scaleBarTop, paint)
 
         val visibleScales = scales.filter { it.scaleResolution <= resolution }
 
@@ -334,17 +346,18 @@ class ScaleChartView : View {
         }
 
         // draw middle
-        val midStartUnit = max(viewStartUnit, safeStartValue.toDouble())
-        val midEndUnit = min(viewEndUnit, if (loop) (safeEndValue - 1).toDouble() else safeEndValue.toDouble())
+        val midStartSafeUnit = max(viewStartUnit, safeStartValue.toDouble())
+        val midEndSafeUnit = min(viewEndUnit, if (loop) (safeEndValue - 1).toDouble() else safeEndValue.toDouble())
+
 
         visibleScales.asReversed().forEach {
-            val divisibleStart = if (midStartUnit.toInt() % it.unit == 0) {
-                midStartUnit.toInt()
+            val divisibleStart = if (midStartSafeUnit.toInt() % it.unit == 0) {
+                midStartSafeUnit.toInt()
             } else {
-                ((midStartUnit.toInt() / it.unit) + 1) * it.unit
+                ((midStartSafeUnit.toInt() / it.unit) + 1) * it.unit
             }
 
-            for (i in divisibleStart..midEndUnit.toInt() step it.unit) {
+            for (i in divisibleStart..midEndSafeUnit.toInt() step it.unit) {
                 sparseArray.put(i, it)
             }
         }
@@ -354,10 +367,7 @@ class ScaleChartView : View {
         for (i in 0 until sparseArray.size()) {
             val safeUnit = sparseArray.keyAt(i)
             val scale = sparseArray.valueAt(i)
-            val positionX = (
-                    (width - paddingLeft - paddingEnd) / 2 +
-                            paddingLeft + unitToPx(safeUnit - currentSafeUnit)
-                    ).toFloat()
+            val positionX = getPositionX(safeUnit).toFloat()
 
             if (scale.textResolution <= resolution) {
                 scale.parse(safeUnit - offset).also {
@@ -380,6 +390,8 @@ class ScaleChartView : View {
         }
 
         if (loop) {
+            // [start, end] <= closed interval
+            canvas.drawLine(paddingLeft.toFloat(), scaleBarTop, width - paddingRight.toFloat(), scaleBarTop, paint)
 
             if (underflow) {
                 // draw left
@@ -405,6 +417,23 @@ class ScaleChartView : View {
                 }
 
             }
+
+        } else {
+            canvas.drawLine(
+                    if (underflow) {
+                        (getPositionX(midStartSafeUnit) - SCALE_THICKNESS / 2).toFloat()
+                    } else {
+                        paddingLeft.toFloat()
+                    },
+                    scaleBarTop,
+                    if (overflow) {
+                        (getPositionX(midEndSafeUnit) + SCALE_THICKNESS / 2).toFloat()
+                    } else {
+                        width - paddingRight.toFloat()
+                    },
+                    scaleBarTop,
+                    paint
+            )
         }
 
     }
