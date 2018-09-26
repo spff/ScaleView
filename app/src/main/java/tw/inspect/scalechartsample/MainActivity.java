@@ -48,14 +48,14 @@ public class MainActivity extends Activity {
             eventList.add(simpleBuilder.event);
         }
 
-        scaleChartView.setLineSegmentList(eventList);
+        scaleChartView.setSortedLineSegments(eventList);
         scaleChartView.setOnLineSegmentClickedListener(new OnLineSegmentClickedListener() {
 
             @Override
             public void onLineSegmentClicked(@NonNull final ScaleChartView scaleChartView, int eventIndex) {
                 Toast.makeText(
                         MainActivity.this,
-                        "eventTitle: " + scaleChartView.getLineSegmentList().get(eventIndex).getText(),
+                        "eventTitle: " + scaleChartView.getSortedLineSegments().get(eventIndex).getText(),
                         Toast.LENGTH_SHORT
                 ).show();
             }

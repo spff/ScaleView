@@ -15,7 +15,6 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import android.widget.Scroller
-import java.util.*
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -32,16 +31,14 @@ class ScaleChartView : View {
     private val paint1 = Paint()
     private val paint2 = Paint()
     private val TAG = this.javaClass.simpleName
-    private var lineSegments: List<LineSegment> = ArrayList()
 
     private var onLineSegmentClickedListener: OnLineSegmentClickedListener? = null
 
     private var onDoubleTapListener: GestureDetector.OnDoubleTapListener? = null
 
-    var lineSegmentList: List<LineSegment>
-        get() = lineSegments
+    var sortedLineSegments: List<LineSegment> = ArrayList()
         set(lineSegmentList) {
-            this.lineSegments = lineSegmentList
+            field = lineSegmentList
             invalidate()
         }
 
@@ -227,7 +224,7 @@ class ScaleChartView : View {
         override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
             Log.e("onSingleTapConfirmed", e.toString())
 
-            for (i in lineSegments.indices) {
+            for (i in sortedLineSegments.indices) {
 
                 val EVENT_RECT_TOP = (height * EVENT_RECT_TOP_PERCENTAGE).toFloat()
                 val EVENT_RECT_BOTTOM = (height * EVENT_RECT_BOTTOM_PERCENTAGE).toFloat()
@@ -237,8 +234,8 @@ class ScaleChartView : View {
                 Log.e(TAG, oneHourEqualPx.toString() + "")
                 val oneSecondEqualPx = oneHourEqualPx / (60f * 60f)
 
-                if (e.x >= lineSegments[i].startPoint * oneSecondEqualPx &&
-                        e.x <= lineSegments[i].endPoint * oneSecondEqualPx &&
+                if (e.x >= sortedLineSegments[i].startPoint * oneSecondEqualPx &&
+                        e.x <= sortedLineSegments[i].endPoint * oneSecondEqualPx &&
                         e.y >= EVENT_RECT_TOP &&
                         e.y <= EVENT_RECT_BOTTOM) {
 
@@ -272,21 +269,24 @@ class ScaleChartView : View {
 
     private var lastSpanX = 1F
     private var lastResolution = resolution
-    private val scaleGestureDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-        override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-            Log.e("onScaleBegin", detector.toString())
-            lastResolution = resolution
-            lastSpanX = detector.currentSpanX
-            return super.onScaleBegin(detector)
-        }
+    private val scaleGestureDetector = ScaleGestureDetector(
+            context,
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                    Log.e("onScaleBegin", detector.toString())
+                    lastResolution = resolution
+                    lastSpanX = detector.currentSpanX
+                    return super.onScaleBegin(detector)
+                }
 
-        override fun onScale(detector: ScaleGestureDetector): Boolean {
-            Log.e("onScale", detector.toString())
-            resolution = lastResolution * detector.currentSpanX / lastSpanX
-            invalidate()
-            return super.onScale(detector)
-        }
-    })
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    Log.e("onScale", detector.toString())
+                    resolution = lastResolution * detector.currentSpanX / lastSpanX
+                    invalidate()
+                    return super.onScale(detector)
+                }
+            }
+    )
 
     private val scroller = Scroller(context)
 
@@ -301,6 +301,7 @@ class ScaleChartView : View {
 
 
     override fun onDraw(canvas: Canvas) {
+        val height = this.height
 
         val eventTop = (height * EVENT_RECT_TOP_PERCENTAGE).toFloat()
         val eventBottom = (height * EVENT_RECT_BOTTOM_PERCENTAGE).toFloat()
@@ -318,7 +319,7 @@ class ScaleChartView : View {
         val overflow = (viewEndUnit > safeEndValue.toDouble())
 
 /*
-        for (event in lineSegments) {
+        for (event in sortedLineSegments) {
 
             val oneHourEqualPx = width / 25.0f
             val oneSecondEqualPx = oneHourEqualPx / (60f * 60f)
@@ -391,7 +392,13 @@ class ScaleChartView : View {
 
         if (loop) {
             // [start, end] <= closed interval
-            canvas.drawLine(paddingLeft.toFloat(), scaleBarTop, width - paddingRight.toFloat(), scaleBarTop, paint)
+            canvas.drawLine(
+                    paddingLeft.toFloat(),
+                    scaleBarTop,
+                    width - paddingRight.toFloat(),
+                    scaleBarTop,
+                    paint
+            )
 
             if (underflow) {
                 // draw left
