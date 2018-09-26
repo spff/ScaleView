@@ -250,7 +250,9 @@ class ScaleChartView : View {
 
             return super.onSingleTapConfirmed(e)
         }
-    })
+    }).apply {
+        setIsLongpressEnabled(false)
+    }
 
 
     private fun fling(velocityX: Float) {
@@ -291,10 +293,32 @@ class ScaleChartView : View {
 
     private val scroller = Scroller(context)
 
+
+    private lateinit var lastEvent: MotionEvent
+    private var multi = false
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        var retVal = scaleGestureDetector.onTouchEvent(event)
-        retVal = gestureDetector.onTouchEvent(event) || retVal
-        return retVal || super.onTouchEvent(event)
+        scaleGestureDetector.onTouchEvent(event)
+
+        if (event.pointerCount == 1) {
+
+            // Add the MotionEvent.ACTION_DOWN back
+            // I put a second condition "event.action != MotionEvent.ACTION_DOWN"
+            // in case multiple pointers leave together
+            if (multi && event.action != MotionEvent.ACTION_DOWN) {
+                gestureDetector.onTouchEvent(event.apply { action = MotionEvent.ACTION_DOWN })
+            }
+            gestureDetector.onTouchEvent(event)
+
+        } else {
+            if (!multi) {
+                // Cancel scrolling
+                gestureDetector.onTouchEvent(lastEvent.apply { action = MotionEvent.ACTION_CANCEL })
+            }
+        }
+        this.lastEvent = event
+        multi = (event.pointerCount != 1)
+
+        return true
     }
 
 
