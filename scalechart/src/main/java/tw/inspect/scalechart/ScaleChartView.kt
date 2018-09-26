@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Paint.Style
+import android.graphics.RectF
 import android.support.v4.view.ViewCompat
 import android.util.AttributeSet
 import android.util.Log
@@ -54,6 +55,7 @@ class ScaleChartView : View {
         paint1.color = Color.YELLOW
         paint2.color = Color.BLACK
         paint.strokeWidth = SCALE_THICKNESS
+        paint.style = Style.FILL
         setPadding(4, 4, 0, 0)
     }
 
@@ -222,7 +224,6 @@ class ScaleChartView : View {
         }
 
         override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-            Log.e("onSingleTapConfirmed", e.toString())
 
             for (i in sortedLineSegments.indices) {
 
@@ -298,7 +299,7 @@ class ScaleChartView : View {
 
 
     private val sparseArray = SparseArray<Scale>()
-
+    private val rectF = RectF()
 
     override fun onDraw(canvas: Canvas) {
         val height = this.height
@@ -309,28 +310,12 @@ class ScaleChartView : View {
         val scaleTextTop = (height * TIME_TEXT_TOP_PERCENTAGE).toFloat()
 
 
-        paint.color = Color.BLUE
-        paint.style = Style.FILL
-
         val viewStartUnit = currentSafeUnit - pxToUnit(width - paddingLeft.toDouble()) / 2
         val viewEndUnit = currentSafeUnit + pxToUnit(width - paddingRight.toDouble()) / 2
 
         val underflow = (viewStartUnit < safeStartValue.toDouble())
         val overflow = (viewEndUnit > safeEndValue.toDouble())
-
-/*
-        for (event in sortedLineSegments) {
-
-            val oneHourEqualPx = width / 25.0f
-            val oneSecondEqualPx = oneHourEqualPx / (60f * 60f)
-
-            rectF.set(event.startPoint * oneSecondEqualPx, EVENT_RECT_TOP, event.endPoint * oneSecondEqualPx, EVENT_RECT_BOTTOM)
-
-            canvas.drawRect(rectF, paint)
-            canvas.drawText(event.text, event.startPoint * oneSecondEqualPx, EVENT_RECT_TOP, paint2)
-
-        }
-*/
+        
 
         paint.color = Color.BLACK
 
@@ -389,6 +374,28 @@ class ScaleChartView : View {
                     paint
             )
         }
+
+        paint.color = Color.BLUE
+        // TODO filter events
+        for (event in sortedLineSegments) {
+
+            rectF.set(
+                    getPositionX(event.startPoint).toFloat(),
+                    (EVENT_RECT_TOP_PERCENTAGE * height).toFloat(),
+                    getPositionX(event.endPoint).toFloat(),
+                    (EVENT_RECT_BOTTOM_PERCENTAGE * height).toFloat()
+            )
+
+            canvas.drawRect(rectF, paint)
+            canvas.drawText(event.text,
+                    getPositionX(event.startPoint).toFloat(),
+                    (EVENT_RECT_TOP_PERCENTAGE * height).toFloat(),
+                    paint2
+            )
+
+        }
+        paint.color = Color.BLACK
+
 
         if (loop) {
             // [start, end] <= closed interval
