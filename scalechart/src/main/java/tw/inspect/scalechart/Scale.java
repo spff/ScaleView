@@ -5,6 +5,11 @@ public class Scale {
     final double textResolution;
     final double scaleResolution;
     final double lengthRatio;
+
+    /**
+     * @param textResolution  unit / inch
+     * @param scaleResolution unit / inch
+     */
     Scale(final int unit, final double textResolution, final double scaleResolution, final double lengthRatio) {
         this.unit = unit;
         this.textResolution = textResolution;

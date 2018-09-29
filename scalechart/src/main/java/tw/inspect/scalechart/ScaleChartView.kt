@@ -112,57 +112,57 @@ class ScaleChartView : View {
      * Should be the order in descending power
      * */
     var scales: List<Scale> = listOf(
-            object : Scale(4 * 60 * 60, 0.000001, 0.000001, 0.95) {
+            object : Scale(4 * 60 * 60, 1000000.0, 1000000.0, 0.95) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilMinute(value)
                 }
             },
-            object : Scale(2 * 60 * 60, 0.000001, 0.000001, 0.95) {
+            object : Scale(2 * 60 * 60, 1000000.0, 1000000.0, 0.95) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilMinute(value)
                 }
             },
-            object : Scale(60 * 60, 0.000001, 0.000001, 0.95) {
+            object : Scale(60 * 60, 1000000.0, 1000000.0, 0.95) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilMinute(value)
                 }
             },
-            object : Scale(30 * 60, 0.00021, 0.00015, 0.8) {
+            object : Scale(30 * 60, 4761.9, 6666.6, 0.8) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilMinute(value)
                 }
             },
-            object : Scale(10 * 60, 0.000625, 0.00021, 0.7) {
+            object : Scale(10 * 60, 1600.0, 4761.9, 0.7) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilMinute(value)
                 }
             },
-            object : Scale(5 * 60, 0.00138, 0.000625, 0.6) {
+            object : Scale(5 * 60, 724.6, 1600.0, 0.6) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilMinute(value)
                 }
             },
-            object : Scale(60, 0.0077, 0.00138, 0.5) {
+            object : Scale(60, 130.0, 724.6, 0.5) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilMinute(value)
                 }
             },
-            object : Scale(30, 0.017, 0.0077, 0.4) {
+            object : Scale(30, 58.8, 130.0, 0.4) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilSecond(value)
                 }
             },
-            object : Scale(10, 0.09, 0.017, 0.3) {
+            object : Scale(10, 11.1, 58.8, 0.3) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilSecond(value)
                 }
             },
-            object : Scale(5, 0.18, 0.09, 0.2) {
+            object : Scale(5, 5.5, 11.1, 0.2) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilSecond(value)
                 }
             },
-            object : Scale(1, 0.6, 0.18, 0.1) {
+            object : Scale(1, 1.67, 5.5, 0.1) {
                 override fun parse(value: Int): String {
                     return formatTimeUntilSecond(value)
                 }
@@ -170,16 +170,20 @@ class ScaleChartView : View {
     )
 
     /**
-     * How many dp / unit
+     * How many unit / inch
+     * It's your duty to make sure the value is inside the bound
      * */
-    var resolution = 1.0 / 6400
+    var upi = 6400 / 1.0
+
+    var maxUpi = 8000 / 1.0
+    var minUpi = 1 / 1.0
 
     private fun pxToUnit(px: Double): Double {
-        return px / context.resources.displayMetrics.xdpi / resolution
+        return px / context.resources.displayMetrics.xdpi * upi
     }
 
     private fun unitToPx(unit: Double): Double {
-        return unit * context.resources.displayMetrics.xdpi * resolution
+        return unit * context.resources.displayMetrics.xdpi / upi
     }
 
     private val innerWidth
@@ -263,7 +267,7 @@ class ScaleChartView : View {
         scroller.fling(
                 currentUnit.toInt(),
                 0,
-                (velocityX * resolution).toInt(),
+                (velocityX / upi).toInt(),
                 0,
                 0, safeEndValue.toInt(),
                 0, 0
@@ -271,21 +275,19 @@ class ScaleChartView : View {
         ViewCompat.postInvalidateOnAnimation(this)
     }
 
-    private var lastSpanX = 1F
-    private var lastResolution = resolution
     private val scaleGestureDetector = ScaleGestureDetector(
             context,
             object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                private var prev = 1.0
                 override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
                     Log.e("onScaleBegin", detector.toString())
-                    lastResolution = resolution
-                    lastSpanX = detector.currentSpanX
+                    prev = upi * detector.currentSpanX
                     return super.onScaleBegin(detector)
                 }
 
                 override fun onScale(detector: ScaleGestureDetector): Boolean {
                     Log.e("onScale", detector.toString())
-                    resolution = lastResolution * detector.currentSpanX / lastSpanX
+                    upi = max(minUpi, min(maxUpi, prev / detector.currentSpanX))
                     invalidate()
                     return super.onScale(detector)
                 }
@@ -345,7 +347,7 @@ class ScaleChartView : View {
         paint.color = Color.BLACK
 
 
-        val visibleScales = scales.filter { it.scaleResolution <= resolution }
+        val visibleScales = scales.filter { it.scaleResolution >= upi }
 
         sparseArray.clear()
 
@@ -380,7 +382,7 @@ class ScaleChartView : View {
             val scale = sparseArray.valueAt(i)
             val positionX = getPositionX(safeUnit).toFloat()
 
-            if (scale.textResolution <= resolution) {
+            if (scale.textResolution >= upi) {
                 scale.parse(safeUnit - offset).also {
                     canvas.drawText(
                             it,

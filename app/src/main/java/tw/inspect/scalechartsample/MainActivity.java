@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
             @Override
             public boolean onDoubleTap(MotionEvent e) {
                 scaleChartView.setCurrentUnit(24 * 60 * 60 / 2);
-                scaleChartView.setResolution((scaleChartView.getWidth() - 20) / getResources().getDisplayMetrics().xdpi / (24 * 60 * 60));
+                scaleChartView.setUpi((scaleChartView.getWidth() - 20) / getResources().getDisplayMetrics().xdpi / (24 * 60 * 60));
                 scaleChartView.setScrollable(false);
                 return false;
             }
