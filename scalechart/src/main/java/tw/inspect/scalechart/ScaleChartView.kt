@@ -194,17 +194,18 @@ class ScaleChartView : View {
     }
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
-
+        private var downSafeUnit = 0.0
         override fun onScroll(e1: MotionEvent, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             Log.e("onScroll", "$e1 $e2 $distanceX $distanceY")
             if (scrollable) {
-                scrollToSafeUnit(currentSafeUnit + pxToUnit(distanceX.toDouble()))
+                scrollToSafeUnit(downSafeUnit + pxToUnit(e1.x - e2.x.toDouble()))
             }
             return true
         }
 
         override fun onDown(e: MotionEvent): Boolean {
             Log.e("onDown", e.toString())
+            downSafeUnit = currentSafeUnit
             //releaseEdgeEffects()
             scroller.forceFinished(true)
             ViewCompat.postInvalidateOnAnimation(this@ScaleChartView)
@@ -339,7 +340,7 @@ class ScaleChartView : View {
 
         val underflow = (viewStartUnit < safeStartValue.toDouble())
         val overflow = (viewEndUnit > safeEndValue.toDouble())
-        
+
 
         paint.color = Color.BLACK
 
